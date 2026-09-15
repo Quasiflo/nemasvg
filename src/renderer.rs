@@ -115,12 +115,8 @@ pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Opt
     };
 
     // First pass: collect every non-plain style so classes are stable.
-    let mut styles: HashMap<Style, usize> = HashMap::new();
-    for frame in &timeline.frames {
-        collect_styles(&frame.snap.lines, &ctx, &mut styles);
-    }
-    let mut classes: Vec<(usize, Style)> = styles.into_iter().map(|(s, i)| (i, s)).collect();
-    classes.sort_by_key(|(i, _)| *i);
+    let classes = collect_classes(timeline, &ctx);
+    let lookup = styles_lookup(&classes);
 
     let mut out = String::new();
     out.push_str(&format!(
@@ -165,27 +161,7 @@ pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Opt
     // Row interning: identical rows are emitted once into <defs> and shared
     // via <use>. Rows are position-independent (relative y); each <use>
     // places one at its frame offset and row. Empty rows emit nothing.
-    let lookup = styles_lookup(&classes);
-    let mut registry: HashMap<String, usize> = HashMap::new();
-    let mut defs: Vec<String> = Vec::new();
-    let mut frame_rows: Vec<Vec<Option<usize>>> = Vec::with_capacity(timeline.frames.len());
-    for frame in &timeline.frames {
-        let lines = &frame.snap.lines;
-        let mut ids: Vec<Option<usize>> = Vec::new();
-        for line in lines.iter().take(ctx_rows(&ctx)) {
-            let markup = render_row(line, &ctx, &lookup);
-            if markup.is_empty() {
-                ids.push(None);
-                continue;
-            }
-            let id = *registry.entry(markup.clone()).or_insert_with(|| {
-                defs.push(markup);
-                defs.len() - 1
-            });
-            ids.push(Some(id));
-        }
-        frame_rows.push(ids);
-    }
+    let (defs, frame_rows) = intern_rows(timeline, &ctx, &lookup);
 
     write!(
         out,
@@ -203,21 +179,13 @@ pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Opt
         }
         out.push_str("</defs>");
     }
-    if animated {
-        write!(
-            out,
-            "<g class=\"r\" xml:space=\"preserve\" fill=\"{fg}\">",
-            fg = theme.fg
-        )
-        .unwrap();
-    } else {
-        write!(
-            out,
-            "<g xml:space=\"preserve\" fill=\"{fg}\">",
-            fg = theme.fg
-        )
-        .unwrap();
-    }
+    let reel_class = animated.then_some(" class=\"r\"").unwrap_or_default();
+    write!(
+        out,
+        "<g{reel_class} xml:space=\"preserve\" fill=\"{fg}\">",
+        fg = theme.fg
+    )
+    .unwrap();
     if timeline.frames.is_empty() {
         out.push_str("<g></g>");
     }
@@ -288,19 +256,52 @@ fn cell_style(cell: &avt::Cell, theme: &Theme) -> (Style, Option<String>) {
     )
 }
 
-fn collect_styles(lines: &[Line], ctx: &Ctx<'_>, styles: &mut HashMap<Style, usize>) {
-    for line in lines.iter().take(ctx_rows(ctx)) {
-        for cell in line.cells().iter().take(ctx_cols(ctx)) {
-            if cell.width() == 0 {
-                continue;
-            }
-            let (style, _) = cell_style(cell, ctx.theme);
-            if !style.is_plain(ctx.theme) && !styles.contains_key(&style) {
-                let id = styles.len();
-                styles.insert(style, id);
+fn collect_classes(timeline: &Timeline, ctx: &Ctx<'_>) -> Vec<(usize, Style)> {
+    let mut styles: HashMap<Style, usize> = HashMap::new();
+    for frame in &timeline.frames {
+        for line in frame.snap.lines.iter().take(ctx_rows(ctx)) {
+            for cell in line.cells().iter().take(ctx_cols(ctx)) {
+                if cell.width() == 0 {
+                    continue;
+                }
+                let (style, _) = cell_style(cell, ctx.theme);
+                if !style.is_plain(ctx.theme) && !styles.contains_key(&style) {
+                    let id = styles.len();
+                    styles.insert(style, id);
+                }
             }
         }
     }
+    let mut classes: Vec<(usize, Style)> = styles.into_iter().map(|(s, i)| (i, s)).collect();
+    classes.sort_by_key(|(i, _)| *i);
+    classes
+}
+
+fn intern_rows(
+    timeline: &Timeline,
+    ctx: &Ctx<'_>,
+    lookup: &HashMap<&Style, usize>,
+) -> (Vec<String>, Vec<Vec<Option<usize>>>) {
+    let mut registry: HashMap<String, usize> = HashMap::new();
+    let mut defs: Vec<String> = Vec::new();
+    let mut frame_rows: Vec<Vec<Option<usize>>> = Vec::with_capacity(timeline.frames.len());
+    for frame in &timeline.frames {
+        let mut ids: Vec<Option<usize>> = Vec::new();
+        for line in frame.snap.lines.iter().take(ctx_rows(ctx)) {
+            let markup = render_row(line, ctx, lookup);
+            if markup.is_empty() {
+                ids.push(None);
+                continue;
+            }
+            let id = *registry.entry(markup.clone()).or_insert_with(|| {
+                defs.push(markup);
+                defs.len() - 1
+            });
+            ids.push(Some(id));
+        }
+        frame_rows.push(ids);
+    }
+    (defs, frame_rows)
 }
 
 fn ctx_cols(ctx: &Ctx<'_>) -> usize {

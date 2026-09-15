@@ -14,6 +14,11 @@ mod timeline;
 pub use input::read_cast_text;
 pub use theme::{DEFAULT_FONT_FAMILY, DEFAULT_THEME, Theme, builtin_names};
 
+/// Maximum terminal dimension (columns or rows) accepted from headers,
+/// resize events, and CLI overrides. Bounds `avt` grid allocation against
+/// hostile input; 4096 cells per axis is already absurd as SVG output.
+pub(crate) const MAX_DIM: usize = 4096;
+
 /// Conversion options. Mirrors the CLI flags one-to-one.
 #[derive(Debug, Clone)]
 pub struct Options {
@@ -77,14 +82,69 @@ impl Default for Options {
     }
 }
 
+impl Options {
+    /// Fail fast on nonsense before any work happens. NaN fails the
+    /// range checks below (all comparisons are false), infinities fail
+    /// `is_finite`, so both are rejected without special cases.
+    pub fn validate(&self) -> anyhow::Result<()> {
+        if self.font_size == 0 {
+            anyhow::bail!("invalid --font-size 0");
+        }
+        if !(self.line_height > 0.0 && self.line_height.is_finite()) {
+            anyhow::bail!("invalid --line-height {}", self.line_height);
+        }
+        if !(self.speed > 0.0 && self.speed.is_finite()) {
+            anyhow::bail!("invalid --speed {}", self.speed);
+        }
+        for (name, value) in [("cols", self.cols), ("rows", self.rows)] {
+            if let Some(n) = value
+                && !(1..=MAX_DIM).contains(&n)
+            {
+                anyhow::bail!("invalid --{name} {n} (must be 1..={MAX_DIM})");
+            }
+        }
+        if let Some(limit) = self.idle_time_limit
+            && !(limit >= 0.0 && limit.is_finite())
+        {
+            anyhow::bail!("invalid --idle-time-limit {limit}");
+        }
+        for (name, value) in [("at", self.at), ("from", self.from), ("to", self.to)] {
+            if let Some(t) = value
+                && !(t >= 0.0 && t.is_finite())
+            {
+                anyhow::bail!("invalid --{name} {t}");
+            }
+        }
+        if let (Some(from), Some(to)) = (self.from, self.to)
+            && from > to
+        {
+            anyhow::bail!("invalid range: --from {from} is after --to {to}");
+        }
+        validate_font_family(&self.font_family)?;
+        Ok(())
+    }
+}
+
+/// The font stack is interpolated into a `<style>` element (a CSS context, so
+/// XML escaping does not apply). Allowlist the characters legitimate stacks
+/// need; anything else is rejected rather than risk breaking out of the
+/// stylesheet.
+fn validate_font_family(family: &str) -> anyhow::Result<()> {
+    if family.is_empty() {
+        anyhow::bail!("invalid --font-family: must not be empty");
+    }
+    if let Some(c) = family
+        .chars()
+        .find(|c| !(c.is_alphanumeric() || matches!(c, ',' | ' ' | '\'' | '"' | '-' | '.')))
+    {
+        anyhow::bail!("invalid --font-family: unsupported character {c:?}");
+    }
+    Ok(())
+}
+
 /// Convert full asciicast v3 text into a self-contained animated SVG document.
 pub fn generate(cast: &str, options: &Options) -> anyhow::Result<String> {
-    if options.font_size == 0 {
-        anyhow::bail!("invalid --font-size 0");
-    }
-    if !(options.line_height > 0.0 && options.line_height.is_finite()) {
-        anyhow::bail!("invalid --line-height {}", options.line_height);
-    }
+    options.validate()?;
 
     let (header, events) = asciicast::parse(cast)?;
 

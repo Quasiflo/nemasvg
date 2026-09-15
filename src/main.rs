@@ -19,7 +19,7 @@ struct Cli {
     #[arg(long, default_value_t = 1.0)]
     speed: f64,
 
-    /// Maximum visual frames per second.
+    /// Maximum visual frames per second (0 disables capping).
     #[arg(long, default_value_t = 30)]
     fps: u32,
 

@@ -29,10 +29,6 @@ impl Term {
         self.vt.resize(cols, rows);
     }
 
-    pub fn size(&self) -> (usize, usize) {
-        self.vt.size()
-    }
-
     pub fn snapshot(&self) -> Snapshot {
         Snapshot {
             lines: self.vt.view().cloned().collect(),

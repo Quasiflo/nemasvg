@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+use crate::MAX_DIM;
 use crate::theme::Theme;
 
 /// Raw `term` object from a v3 header.
@@ -146,9 +147,9 @@ fn parse_header(line_no: usize, text: &str) -> anyhow::Result<Header> {
             raw.version
         );
     }
-    if raw.term.cols == 0 || raw.term.rows == 0 {
+    if !(1..=MAX_DIM).contains(&raw.term.cols) || !(1..=MAX_DIM).contains(&raw.term.rows) {
         anyhow::bail!(
-            "line {}: invalid terminal size {}x{}",
+            "line {}: invalid terminal size {}x{} (must be 1..={MAX_DIM})",
             line_no + 1,
             raw.term.cols,
             raw.term.rows

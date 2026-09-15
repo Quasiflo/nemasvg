@@ -1,3 +1,4 @@
+use crate::MAX_DIM;
 use crate::Options;
 use crate::asciicast::{Event, EventCode, Header};
 use crate::terminal::{Snapshot, Term};
@@ -28,33 +29,16 @@ pub struct Timeline {
 /// output/resize). Identical consecutive states are dropped; bursts are merged
 /// to the FPS window keeping the latest state.
 pub fn build(header: &Header, events: &[Event], options: &Options) -> anyhow::Result<Timeline> {
-    let mut term = Term::new(header.cols, header.rows);
-    let mut canvas_cols = options.cols.unwrap_or(header.cols);
-    let mut canvas_rows = options.rows.unwrap_or(header.rows);
-    if let (Some(c), Some(r)) = (options.cols, options.rows) {
-        term = Term::new(c, r);
-        canvas_cols = c;
-        canvas_rows = r;
-    } else {
-        if let Some(c) = options.cols {
-            let (_, rows) = term.size();
-            term = Term::new(c, rows);
-            canvas_cols = c;
-        }
-        if let Some(r) = options.rows {
-            let (cols, _) = term.size();
-            term = Term::new(cols, r);
-            canvas_rows = r;
-        }
-    }
+    let start_cols = options.cols.unwrap_or(header.cols);
+    let start_rows = options.rows.unwrap_or(header.rows);
+    let mut term = Term::new(start_cols, start_rows);
+    let mut canvas_cols = start_cols;
+    let mut canvas_rows = start_rows;
 
     let idle_limit = options
         .idle_time_limit
         .or(header.idle_time_limit)
         .unwrap_or(f64::INFINITY);
-    if options.speed <= 0.0 || !options.speed.is_finite() {
-        anyhow::bail!("invalid --speed {}", options.speed);
-    }
 
     let mut frames: Vec<Frame> = Vec::new();
     let mut clock = 0.0f64;
@@ -82,9 +66,15 @@ pub fn build(header: &Header, events: &[Event], options: &Options) -> anyhow::Re
 
         if matches!(event.code, EventCode::Output | EventCode::Resize) {
             let snap = term.snapshot();
-            // Drop states with no visual change.
-            if frames.last().is_none_or(|f: &Frame| f.snap != snap) {
-                frames.push(Frame { time: clock, snap });
+            match frames.last_mut() {
+                // No visual change: drop.
+                Some(last) if last.snap == snap => {}
+                // No time passed (e.g. same-ms burst with --fps 0): the
+                // earlier state was never viewable, latest wins.
+                Some(last) if clock <= last.time => {
+                    *last = Frame { time: clock, snap };
+                }
+                _ => frames.push(Frame { time: clock, snap }),
             }
         }
     }
@@ -120,11 +110,7 @@ pub fn build(header: &Header, events: &[Event], options: &Options) -> anyhow::Re
         in_range
     };
 
-    let base = if options.at.is_some() {
-        0.0
-    } else {
-        options.from.unwrap_or(0.0)
-    };
+    let base = options.from.unwrap_or(0.0);
     let duration = if options.at.is_some() {
         0.0
     } else {
@@ -171,8 +157,8 @@ fn parse_resize(data: &str) -> anyhow::Result<(usize, usize)> {
     let rows: usize = rows
         .parse()
         .map_err(|_| anyhow::anyhow!("invalid resize event {data:?}"))?;
-    if cols == 0 || rows == 0 {
-        anyhow::bail!("invalid resize event {data:?}");
+    if !(1..=MAX_DIM).contains(&cols) || !(1..=MAX_DIM).contains(&rows) {
+        anyhow::bail!("invalid resize event {data:?} (must be 1..={MAX_DIM})");
     }
     Ok((cols, rows))
 }

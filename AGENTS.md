@@ -18,7 +18,8 @@ Asciinema v3 -> animated SVG converter (CLI + library). v3-only by design — v1
 ## Commands
 
 - `cargo run` / `cargo build` — build/run
-- `cargo test` — behavior-first suite: `tests/errors.rs` (rejections), `tests/timeline.rs` (clock/FPS/seeks), `tests/rendering.rs` (themes/styles/cursor/chrome), `tests/input.rs` (file/zstd), plus unit tests in `theme.rs`. Fixture builder + SVG inspectors in `tests/common/`.
+- `cargo test` — behavior-first suite: `tests/errors.rs` (rejections), `tests/timeline.rs` (clock/FPS/seeks), `tests/rendering.rs` (themes/styles/cursor/chrome), `tests/input.rs` (file/zstd), `tests/e2e.rs` (real recordings vs committed `.svg` goldens), plus unit tests in `theme.rs`. Fixture builder + SVG inspectors in `tests/common/`.
+- E2E fixtures in `tests/fixtures/` are real `asciinema rec` captures (re-record via `scripts/record-fixtures.sh`, needs the asciinema mise tool). Tests only read them; timing nondeterminism never leaks in. Re-bless goldens with `UPDATE_GOLDENS=1 cargo test --test e2e` only after reviewing the diff.
 - `cargo clippy --all-targets` — must pass clean
 - `cargo fmt --check` / `cargo fmt` — formatter gate
 

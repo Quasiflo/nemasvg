@@ -1,0 +1,4 @@
+{"version":3,"term":{"cols":80,"rows":24},"timestamp":1789484034,"command":"echo before; printf \"\\033[?1049h\\033[HALT line1\\nline2\"; sleep 0.4; printf \"\\033[?1049l\"; echo back","env":{"SHELL":"/bin/zsh"}}
+[0.004, "o", "before\r\n\u001b[?1049h\u001b[HALT line1\r\nline2"]
+[0.412, "o", "\u001b[?1049lback\r\n"]
+[0.001, "x", "0"]

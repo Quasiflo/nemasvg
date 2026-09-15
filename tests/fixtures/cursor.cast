@@ -1,0 +1,11 @@
+{"version":3,"term":{"cols":80,"rows":24},"timestamp":1789484035,"command":"clear; tput cup 2 10; printf \"HELLO\"; tput cup 4 0; printf \"line4\"; tput el; printf \"tail\"; tput cup 0 0; printf \"TOP\"; echo; echo done","env":{"SHELL":"/bin/zsh"}}
+[0.009, "o", "\u001b[3J\u001b[H\u001b[2J"]
+[0.003, "o", "\u001b[3;11H"]
+[0.000, "o", "HELLO"]
+[0.002, "o", "\u001b[5;1H"]
+[0.000, "o", "line4"]
+[0.002, "o", "\u001b[K"]
+[0.000, "o", "tail"]
+[0.002, "o", "\u001b[1;1H"]
+[0.000, "o", "TOP\r\ndone\r\n"]
+[0.000, "x", "0"]

@@ -18,7 +18,7 @@ Asciinema v3 -> animated SVG converter (CLI + library). v3-only by design — v1
 ## Commands
 
 - `cargo run` / `cargo build` — build/run
-- `cargo test` — no tests exist yet; standard layout applies
+- `cargo test` — behavior-first suite: `tests/errors.rs` (rejections), `tests/timeline.rs` (clock/FPS/seeks), `tests/rendering.rs` (themes/styles/cursor/chrome), `tests/input.rs` (file/zstd), plus unit tests in `theme.rs`. Fixture builder + SVG inspectors in `tests/common/`.
 - `cargo clippy --all-targets` — must pass clean
 - `cargo fmt --check` / `cargo fmt` — formatter gate
 

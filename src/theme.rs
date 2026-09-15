@@ -188,3 +188,38 @@ pub fn builtin_names() -> Vec<&'static str> {
         "solarized-light",
     ]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Theme;
+
+    const PALETTE_8: &str = "#000000:#ff0000:#00ff00:#ffff00:#0000ff:#ff00ff:#00ffff:#ffffff";
+
+    #[test]
+    fn eight_color_palette_expands_by_repeating() {
+        let theme = Theme::from_header("#ffffff", "#000000", PALETTE_8).unwrap();
+        assert_eq!(theme.indexed(0), theme.indexed(8));
+        assert_eq!(theme.indexed(1), "#ff0000");
+        assert_eq!(theme.indexed(15), "#ffffff");
+    }
+
+    #[test]
+    fn wrong_palette_count_is_rejected() {
+        assert!(Theme::from_header("#ffffff", "#000000", "#000000:#ffffff").is_err());
+    }
+
+    #[test]
+    fn non_hex_colors_are_rejected() {
+        assert!(Theme::from_header("red", "#000000", PALETTE_8).is_err());
+        assert!(Theme::from_header("#ffffff", "#000000", "red").is_err());
+    }
+
+    #[test]
+    fn indexed_matches_xterm_256() {
+        let theme = Theme::builtin("dracula").unwrap();
+        assert_eq!(theme.indexed(16), "#000000");
+        assert_eq!(theme.indexed(231), "#ffffff");
+        assert_eq!(theme.indexed(232), "#080808");
+        assert_eq!(theme.indexed(255), "#eeeeee");
+    }
+}

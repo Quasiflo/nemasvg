@@ -3,4 +3,18 @@ name = "nemasvg"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "nemasvg"
+path = "src/lib.rs"
+
+[[bin]]
+name = "nemasvg"
+path = "src/main.rs"
+
 [dependencies]
+anyhow = "1.0"
+avt = "0.18"
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+zstd = "0.13"

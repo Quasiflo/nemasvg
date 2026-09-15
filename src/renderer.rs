@@ -179,7 +179,7 @@ pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Opt
         }
         out.push_str("</defs>");
     }
-    let reel_class = animated.then_some(" class=\"r\"").unwrap_or_default();
+    let reel_class = if animated { " class=\"r\"" } else { "" };
     write!(
         out,
         "<g{reel_class} xml:space=\"preserve\" fill=\"{fg}\">",

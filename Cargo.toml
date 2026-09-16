@@ -9,7 +9,7 @@ repository = "https://github.com/Quasiflo/nemasvg"
 readme = "README.md"
 keywords = ["asciinema", "asciicast", "svg", "terminal", "animation"]
 categories = ["command-line-utilities", "multimedia"]
-exclude = [".config/", ".vscode/", ".github/", "docs/", "scripts/"]
+exclude = [".config/", ".vscode/", ".github/", "docs/", "scripts/", "AGENTS.md"]
 
 [lib]
 name = "nemasvg"

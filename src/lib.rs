@@ -5,6 +5,7 @@
 //! wrapper around it.
 
 mod asciicast;
+mod fonts;
 mod input;
 mod renderer;
 mod terminal;
@@ -56,6 +57,10 @@ pub struct Options {
     pub window: bool,
     /// Window title (defaults to the recording title, if any).
     pub title: Option<String>,
+    /// Embed subset fonts (default on; makes output viewer-independent).
+    pub embed_fonts: bool,
+    /// Embed monochrome Noto Emoji for glyphs the mono faces lack.
+    pub embed_emoji: bool,
 }
 
 impl Default for Options {
@@ -78,6 +83,8 @@ impl Default for Options {
             no_loop: false,
             window: false,
             title: None,
+            embed_fonts: true,
+            embed_emoji: false,
         }
     }
 }
@@ -159,5 +166,12 @@ pub fn generate(cast: &str, options: &Options) -> anyhow::Result<String> {
     };
 
     let timeline = timeline::build(&header, &events, options)?;
-    Ok(renderer::render(&timeline, &theme, &header, options))
+    let fonts = if options.embed_fonts {
+        fonts::plan(&timeline, options.embed_emoji)?
+    } else {
+        fonts::system_plan()
+    };
+    Ok(renderer::render(
+        &timeline, &theme, &header, options, &fonts,
+    ))
 }

@@ -87,6 +87,15 @@ struct Cli {
     /// Window title (defaults to the recording title).
     #[arg(long)]
     title: Option<String>,
+
+    /// Skip font embedding; rely on viewer system fonts instead.
+    #[arg(long, default_value_t = false)]
+    no_embed_fonts: bool,
+
+    /// Embed monochrome Noto Emoji for glyphs the mono faces lack
+    /// (color emoji always falls back to OS fonts).
+    #[arg(long, default_value_t = false)]
+    embed_emoji: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -117,6 +126,8 @@ fn main() -> anyhow::Result<()> {
         no_loop: cli.no_loop,
         window: cli.window,
         title: cli.title,
+        embed_fonts: !cli.no_embed_fonts,
+        embed_emoji: cli.embed_emoji,
     };
 
     let cast = read_cast_text(&cli.input)?;

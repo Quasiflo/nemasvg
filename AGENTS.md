@@ -9,7 +9,7 @@ Asciinema v3 -> animated SVG converter (CLI + library). v3-only by design — v1
 - SVG encoding: distinct frames on a horizontal reel, one discrete CSS animation (`steps(1,end)`), rows interned in `<defs>` shared via `<use>`. No JS. Faint uses `fill-opacity` (not `opacity`: `opacity` on `<text>` crashes resvg). Plain text inherits `fill` from the reel `<g>` — never rely on the black default.
 - Hardening invariants: `Options::validate()` is the single gate (rejects bad speed/dims/idle/times, `from>to`, non-allowlisted font stacks — font CSS is injection-sensitive); terminal dims capped at 4096 in header + resize parsing; zero-delta frames replace rather than duplicate keyframe stops.
 - Grid alignment without embedded fonts: `letter-spacing` compensates the assumed 0.6 advance ratio. Never use per-run `textLength` — viewer support varies and identical glyphs pulse between frames. Both are interim until font embedding lands.
-- Font embedding is a planned later post-pass; renderer currently assumes viewer system fonts.
+- Fonts: JetBrains Mono Regular/Bold + Noto Emoji (OFL, in `fonts/`) are subset to used glyphs (pure-Rust `fontcull`) and embedded as WOFF2 data URIs (`ttf2woff2`) by default — `--no-embed-fonts` opts out, `--embed-emoji` adds monochrome emoji (color emoji stays on OS fallback). Column width uses the measured advance. resvg ignores `@font-face`, so embedded rendering is verified by decoding/re-parsing subsets in tests, never by rasterization.
 
 ## Toolchain
 

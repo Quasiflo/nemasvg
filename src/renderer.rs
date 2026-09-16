@@ -5,6 +5,7 @@ use avt::{Color, Line, terminal::Cursor};
 
 use crate::Options;
 use crate::asciicast::Header;
+use crate::fonts::FontPlan;
 use crate::theme::{Theme, rgb_hex};
 use crate::timeline::Timeline;
 
@@ -78,9 +79,16 @@ struct Ctx<'a> {
 /// identical rows are stored once in `<defs>` and shared via `<use>`.
 /// No JavaScript, no external references, so the file animates inside
 /// `<img>`/README sandboxes.
-pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Options) -> String {
+pub fn render(
+    timeline: &Timeline,
+    theme: &Theme,
+    header: &Header,
+    options: &Options,
+    fonts: &FontPlan,
+) -> String {
     let font_size = options.font_size;
-    let col_w = (font_size as f32 * 0.6).round().max(1.0) as u32;
+    let ratio = fonts.advance_ratio as f32;
+    let col_w = (font_size as f32 * ratio).round().max(1.0) as u32;
     let row_h = (font_size as f32 * options.line_height).round() as u32;
     let row_h = row_h.max(font_size);
     let content_w = timeline.cols as u32 * col_w;
@@ -92,14 +100,13 @@ pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Opt
     // Baseline leaves a small descent gap so glyphs don't touch the row below.
     let baseline_dy = font_size + (row_h - font_size) / 2 - 2.min(font_size / 2);
 
-    // Column grid vs font metrics: monospace fonts advance ~0.6em, while
-    // columns are integer pixels. The per-character remainder accumulates
-    // along a row, so compensate with letter-spacing. This assumes the 0.6
-    // ratio; residual drift on other fonts is bounded per run (runs restart
-    // at absolute x) and vanishes once fonts are embedded and measured.
+    // Column grid vs font metrics: the remainder between the integer column
+    // width and the true advance accumulates along a row, so compensate with
+    // letter-spacing. Residual drift on unmeasured fonts is bounded per run
+    // (runs restart at absolute x).
     // Deliberately not textLength: viewer support varies, and per-run
     // scaling makes identical glyphs pulse between frames.
-    let spacing = col_w as f32 - font_size as f32 * 0.6;
+    let spacing = col_w as f32 - font_size as f32 * ratio;
     let spacing_css = if spacing == 0.0 {
         String::new()
     } else {
@@ -143,10 +150,11 @@ pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Opt
         h = ctx.total_h,
     ));
     out.push_str("<style>");
+    out.push_str(&fonts.face_css);
     write!(
         out,
-        "text{{font-family:{};font-size:{}px{};font-variant-ligatures:none;font-kerning:none}}",
-        ctx.options.font_family, font_size, spacing_css,
+        "text{{font-family:{}{};font-size:{}px{};font-variant-ligatures:none;font-kerning:none}}",
+        fonts.family_prefix, ctx.options.font_family, font_size, spacing_css,
     )
     .unwrap();
     for (i, style) in &classes {

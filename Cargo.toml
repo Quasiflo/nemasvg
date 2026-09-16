@@ -1,7 +1,15 @@
 [package]
 name = "nemasvg"
 version = "0.1.0"
+description = "Asciinema -> Animated SVG Generator"
 edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+repository = "https://github.com/Quasiflo/nemasvg"
+readme = "README.md"
+keywords = ["asciinema", "asciicast", "svg", "terminal", "animation"]
+categories = ["command-line-utilities", "multimedia"]
+exclude = [".config/", ".vscode/", ".github/", "docs/", "scripts/"]
 
 [lib]
 name = "nemasvg"

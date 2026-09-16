@@ -27,7 +27,7 @@ GIFs of terminals are blurry and heavy. The asciinema player needs JavaScript, w
 ## Install
 
 ```sh
-cargo install --git https://github.com/Quasiflo/nemasvg
+cargo install nemasvg
 ```
 
 Or build from source with a pinned toolchain via `mise` (`mise install` picks up Rust from `.config/mise.toml`):

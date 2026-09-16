@@ -29,7 +29,7 @@ Asciinema v3 -> animated SVG converter (CLI + library). v3-only by design — v1
 ## Checks (Git Hooks + CI Equivalent)
 
 - Git hooks via `hk` (`.config/hk.pkl`): `rumdl`, `zizmor`, `cargo clippy`, `cargo fmt`, `cargo deny`. Run `hk check` before pushing; it no-ops when no files changed.
-- No `deny.toml`/`rust-toolchain.toml` in repo yet — `cargo deny` uses defaults.
+- License/advisory policy lives in `deny.toml` (tight allowlist; new licenses must be reviewed). No `rust-toolchain.toml` in repo yet.
 - Markdown lint via `rumdl` (`.config/rumdl.toml`, `MD013` disabled). VS Code runs it on save.
 - GitHub Actions lint via `zizmor`; only workflow is `release-please.yml`.
 

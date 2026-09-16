@@ -1,5 +1,5 @@
-{"version":3,"term":{"cols":80,"rows":24},"timestamp":1789484034,"command":"cd tests/fixtures && vim -Nu NONE vim-work.txt -c 'normal! Goline3' -c 'sleep 300m' -c 'wq'","env":{"SHELL":"/bin/zsh"}}
-[0.030, "o", "\u001b[?1049h\u001b[>4;2m\u001b[?1h\u001b=\u001b[?2004h\u001b[?1004h\u001b[1;24r\u001b[?12h\u001b[?12l\u001b[22;2t\u001b[22;1t"]
+{"version":3,"term":{"cols":80,"rows":24},"timestamp":1789519156,"command":"cd tests/fixtures && vim -Nu NONE vim-work.txt -c 'normal! Goline3' -c 'sleep 300m' -c 'wq'","env":{"SHELL":"/bin/zsh"}}
+[0.036, "o", "\u001b[?1049h\u001b[>4;2m\u001b[?1h\u001b=\u001b[?2004h\u001b[?1004h\u001b[1;24r\u001b[?12h\u001b[?12l\u001b[22;2t\u001b[22;1t"]
 [0.001, "o", "\u001b[27m\u001b[23m\u001b[29m\u001b[m\u001b[H\u001b[2J\u001b[?25l\u001b[24;1H\"vim-work.txt\""]
 [0.000, "o", " 2L, 22B"]
 [0.000, "o", "\u001b[?25h"]
@@ -7,4 +7,4 @@
 [0.000, "o", "\r\r\r\n\u001b[?25l\"vim-work.txt\""]
 [0.007, "o", " 3L, 28B written"]
 [0.001, "o", "\r\u001b[23;2t\u001b[23;1t\r\r\n\u001b[?1004l\u001b[?2004l\u001b[?1l\u001b>\u001b[?1049l\u001b[?25h\u001b[>4;m"]
-[0.002, "x", "0"]
+[0.001, "x", "0"]

@@ -17,7 +17,7 @@ export TERM=xterm-256color
 rec() { # name, asciinema-args..., -- command...
     local name="$1"; shift
     echo "recording $name"
-    asciinema rec "$@" "$FIX/$name.cast" -q
+    asciinema rec --overwrite "$@" "$FIX/$name.cast" -q
 }
 
 # SGR attributes and palettes from a real shell.
@@ -34,11 +34,12 @@ rm -f "$FIX/vim-work.txt"
 # Wide Unicode, emoji, box drawing (byte-literal, locale-independent).
 rec unicode -c 'printf "CJK: \xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e end\nemoji: \xf0\x9f\x8e\x89 \xe2\x9a\xa1 ok\n\xe2\x94\x8c\xe2\x94\x80\xe2\x94\x90\n\xe2\x94\x94\xe2\x94\x80\xe2\x94\x98\n"'
 
-# Cursor addressing, clear, erase (real pty, ONLCR line endings).
-rec cursor -c 'clear; tput cup 2 10; printf "HELLO"; tput cup 4 0; printf "line4"; tput el; printf "tail"; tput cup 0 0; printf "TOP"; echo; echo done'
+# Cursor addressing, clear, erase; ends mid-line so the block cursor sits
+# visibly after the partial command (real pty, ONLCR line endings).
+rec cursor -c 'clear; tput cup 2 10; printf "HELLO"; tput cup 4 0; printf "line4"; tput el; printf "tail"; tput cup 0 0; printf "TOP"; printf "\n$ git sta"; sleep 0.3'
 
-# Scrolling viewport (seq through a real pty).
-rec scroll -c 'seq 1 35'
+# Scrolling viewport with visible pacing (each line lands its own frames).
+rec scroll -c 'for i in $(seq 1 30); do echo "scroll-line $i"; sleep 0.07; done'
 
 # carriage-return progress bursts (FPS merging).
 rec progress -c 'for i in $(seq 0 5 100); do printf "\rprogress %3d%%" "$i"; sleep 0.02; done; printf "\nfinished\n"'

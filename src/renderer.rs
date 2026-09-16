@@ -374,18 +374,27 @@ fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> St
         let mut run = String::new();
         let mut run_style: Option<Style> = None;
         let mut run_x = 0u32;
+        let mut run_cells = 0usize;
         let mut col = 0usize;
-        let flush = |out: &mut String, run: &mut String, style: &mut Option<Style>, x: u32| {
+        let flush = |out: &mut String,
+                     run: &mut String,
+                     style: &mut Option<Style>,
+                     x: u32,
+                     cells: usize| {
             if run.is_empty() || run.trim().is_empty() {
                 run.clear();
                 *style = None;
                 return;
             }
+            // Anchor the run to its exact grid span. Viewer fonts never
+            // match our column width precisely, so without this glyphs drift
+            // away from backgrounds/cursor further along the row.
+            let span = cells as u32 * ctx.col_w;
             let style = style.take().expect("run always has a style");
             if style.is_plain(ctx.theme) {
                 write!(
                     out,
-                    "<text x=\"{x}\" y=\"{dy}\">{}</text>",
+                    "<text x=\"{x}\" y=\"{dy}\" textLength=\"{span}\" lengthAdjust=\"spacingAndGlyphs\">{}</text>",
                     esc(run),
                     dy = ctx.baseline_dy
                 )
@@ -393,7 +402,7 @@ fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> St
             } else if let Some(id) = lookup.get(&style) {
                 write!(
                     out,
-                    "<text x=\"{x}\" y=\"{dy}\" class=\"s{id}\">{}</text>",
+                    "<text x=\"{x}\" y=\"{dy}\" textLength=\"{span}\" lengthAdjust=\"spacingAndGlyphs\" class=\"s{id}\">{}</text>",
                     esc(run),
                     dy = ctx.baseline_dy
                 )
@@ -411,17 +420,22 @@ fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> St
             }
             let (style, _) = cell_style(cell, ctx.theme);
             match &run_style {
-                Some(cur) if *cur == style => run.push(cell.char()),
-                _ => {
-                    flush(&mut out, &mut run, &mut run_style, run_x);
-                    run_x = col as u32 * ctx.col_w;
+                Some(cur) if *cur == style => {
                     run.push(cell.char());
+                    run_cells += w as usize;
+                }
+                _ => {
+                    flush(&mut out, &mut run, &mut run_style, run_x, run_cells);
+                    run_x = col as u32 * ctx.col_w;
+                    run_cells = 0;
+                    run.push(cell.char());
+                    run_cells += w as usize;
                     run_style = Some(style);
                 }
             }
             col += w as usize;
         }
-        flush(&mut out, &mut run, &mut run_style, run_x);
+        flush(&mut out, &mut run, &mut run_style, run_x, run_cells);
     }
 
     out

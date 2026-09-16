@@ -1,4 +1,4 @@
-{"version":3,"term":{"cols":80,"rows":24},"timestamp":1789484035,"idle_time_limit":1.0,"command":"echo start; sleep 2; echo end","env":{"SHELL":"/bin/zsh"}}
-[0.004, "o", "start\r\n"]
-[2.007, "o", "end\r\n"]
+{"version":3,"term":{"cols":80,"rows":24},"timestamp":1789519160,"idle_time_limit":1.0,"command":"echo start; sleep 2; echo end","env":{"SHELL":"/bin/zsh"}}
+[0.006, "o", "start\r\n"]
+[2.005, "o", "end\r\n"]
 [0.000, "x", "0"]

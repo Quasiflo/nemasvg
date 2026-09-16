@@ -62,7 +62,7 @@ fn fixtures() -> Vec<Fixture> {
         Fixture {
             name: "cursor",
             options: Options::default(),
-            must_contain: &["TOP", "HELLO", "done"],
+            must_contain: &["TOP", "HELLO", "git sta"],
         },
         Fixture {
             name: "scroll",

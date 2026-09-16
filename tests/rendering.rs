@@ -193,6 +193,25 @@ fn wide_chars_advance_two_columns() {
 }
 
 #[test]
+fn runs_are_anchored_to_their_grid_span() {
+    // Viewer fonts never match our column width exactly; without textLength
+    // glyphs drift away from backgrounds and the cursor along the row.
+    let cast = Cast::new(40, 8)
+        .event(0.1, "o", "ab\u{1b}[31mcd\u{1b}[0m")
+        .build();
+    let out = svg(&cast, &opts());
+    assert!(
+        out.contains("<text x=\"0\" y=\"17\" textLength=\"20\""),
+        "{out}"
+    );
+    assert!(
+        out.contains("<text x=\"20\" y=\"17\" textLength=\"20\""),
+        "{out}"
+    );
+    assert!(out.contains("lengthAdjust=\"spacingAndGlyphs\""));
+}
+
+#[test]
 fn trailing_blanks_are_not_emitted_as_text() {
     let cast = Cast::new(40, 8).event(0.1, "o", "hi").build();
     let out = svg(&cast, &opts());

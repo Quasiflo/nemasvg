@@ -219,6 +219,9 @@ fn whitespace_survives_into_defs() {
         root.contains("xml:space=\"preserve\""),
         "root must preserve space: {root}"
     );
+    // CSS-level pin: Chromium strips edge spaces in use-cloned SVG text
+    // unless white-space:pre, whatever xml:space says.
+    assert!(out.contains("white-space:pre"), "{out}");
 }
 
 #[test]

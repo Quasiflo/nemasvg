@@ -151,9 +151,13 @@ pub fn render(
     ));
     out.push_str("<style>");
     out.push_str(&fonts.face_css);
+    // white-space:pre is load-bearing: Chromium strips leading/trailing
+    // spaces in SVG text cloned through <use> shadow DOM based on CSS
+    // white-space, regardless of xml:space. (xml:space on the root covers
+    // non-CSS renderers such as resvg.)
     write!(
         out,
-        "text{{font-family:{}{};font-size:{}px{};font-variant-ligatures:none;font-kerning:none}}",
+        "text{{font-family:{}{};font-size:{}px{};font-variant-ligatures:none;font-kerning:none;white-space:pre}}",
         fonts.family_prefix, ctx.options.font_family, font_size, spacing_css,
     )
     .unwrap();

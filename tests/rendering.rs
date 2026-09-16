@@ -193,22 +193,13 @@ fn wide_chars_advance_two_columns() {
 }
 
 #[test]
-fn runs_are_anchored_to_their_grid_span() {
-    // Viewer fonts never match our column width exactly; without textLength
-    // glyphs drift away from backgrounds and the cursor along the row.
-    let cast = Cast::new(40, 8)
-        .event(0.1, "o", "ab\u{1b}[31mcd\u{1b}[0m")
-        .build();
+fn letter_spacing_compensates_column_rounding() {
+    // 16px font: 10px columns vs 9.6px advances -> 0.4px per character.
+    // Constant glyph size everywhere (no per-run scaling, which pulsed).
+    let cast = Cast::new(40, 8).event(0.1, "o", "hi").build();
     let out = svg(&cast, &opts());
-    assert!(
-        out.contains("<text x=\"0\" y=\"17\" textLength=\"20\""),
-        "{out}"
-    );
-    assert!(
-        out.contains("<text x=\"20\" y=\"17\" textLength=\"20\""),
-        "{out}"
-    );
-    assert!(out.contains("lengthAdjust=\"spacingAndGlyphs\""));
+    assert!(out.contains("letter-spacing:0.4px"), "{out}");
+    assert!(!out.contains("textLength"), "no per-run scaling");
 }
 
 #[test]

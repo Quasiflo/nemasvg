@@ -92,6 +92,20 @@ pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Opt
     // Baseline leaves a small descent gap so glyphs don't touch the row below.
     let baseline_dy = font_size + (row_h - font_size) / 2 - 2.min(font_size / 2);
 
+    // Column grid vs font metrics: monospace fonts advance ~0.6em, while
+    // columns are integer pixels. The per-character remainder accumulates
+    // along a row, so compensate with letter-spacing. This assumes the 0.6
+    // ratio; residual drift on other fonts is bounded per run (runs restart
+    // at absolute x) and vanishes once fonts are embedded and measured.
+    // Deliberately not textLength: viewer support varies, and per-run
+    // scaling makes identical glyphs pulse between frames.
+    let spacing = col_w as f32 - font_size as f32 * 0.6;
+    let spacing_css = if spacing == 0.0 {
+        String::new()
+    } else {
+        format!(";letter-spacing:{}px", fmt_num(spacing as f64))
+    };
+
     let ctx = Ctx {
         theme,
         options,
@@ -127,8 +141,8 @@ pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Opt
     out.push_str("<style>");
     write!(
         out,
-        "text{{font-family:{};font-size:{}px;font-variant-ligatures:none;font-kerning:none}}",
-        ctx.options.font_family, font_size,
+        "text{{font-family:{};font-size:{}px{};font-variant-ligatures:none;font-kerning:none}}",
+        ctx.options.font_family, font_size, spacing_css,
     )
     .unwrap();
     for (i, style) in &classes {
@@ -374,27 +388,18 @@ fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> St
         let mut run = String::new();
         let mut run_style: Option<Style> = None;
         let mut run_x = 0u32;
-        let mut run_cells = 0usize;
         let mut col = 0usize;
-        let flush = |out: &mut String,
-                     run: &mut String,
-                     style: &mut Option<Style>,
-                     x: u32,
-                     cells: usize| {
+        let flush = |out: &mut String, run: &mut String, style: &mut Option<Style>, x: u32| {
             if run.is_empty() || run.trim().is_empty() {
                 run.clear();
                 *style = None;
                 return;
             }
-            // Anchor the run to its exact grid span. Viewer fonts never
-            // match our column width precisely, so without this glyphs drift
-            // away from backgrounds/cursor further along the row.
-            let span = cells as u32 * ctx.col_w;
             let style = style.take().expect("run always has a style");
             if style.is_plain(ctx.theme) {
                 write!(
                     out,
-                    "<text x=\"{x}\" y=\"{dy}\" textLength=\"{span}\" lengthAdjust=\"spacingAndGlyphs\">{}</text>",
+                    "<text x=\"{x}\" y=\"{dy}\">{}</text>",
                     esc(run),
                     dy = ctx.baseline_dy
                 )
@@ -402,7 +407,7 @@ fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> St
             } else if let Some(id) = lookup.get(&style) {
                 write!(
                     out,
-                    "<text x=\"{x}\" y=\"{dy}\" textLength=\"{span}\" lengthAdjust=\"spacingAndGlyphs\" class=\"s{id}\">{}</text>",
+                    "<text x=\"{x}\" y=\"{dy}\" class=\"s{id}\">{}</text>",
                     esc(run),
                     dy = ctx.baseline_dy
                 )
@@ -420,22 +425,17 @@ fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> St
             }
             let (style, _) = cell_style(cell, ctx.theme);
             match &run_style {
-                Some(cur) if *cur == style => {
-                    run.push(cell.char());
-                    run_cells += w as usize;
-                }
+                Some(cur) if *cur == style => run.push(cell.char()),
                 _ => {
-                    flush(&mut out, &mut run, &mut run_style, run_x, run_cells);
+                    flush(&mut out, &mut run, &mut run_style, run_x);
                     run_x = col as u32 * ctx.col_w;
-                    run_cells = 0;
                     run.push(cell.char());
-                    run_cells += w as usize;
                     run_style = Some(style);
                 }
             }
             col += w as usize;
         }
-        flush(&mut out, &mut run, &mut run_style, run_x, run_cells);
+        flush(&mut out, &mut run, &mut run_style, run_x);
     }
 
     out

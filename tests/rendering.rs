@@ -164,14 +164,47 @@ fn cli_title_overrides_recording_title() {
 #[test]
 fn shared_rows_are_interned_once() {
     // Two frames sharing the "same" row: one def, two uses.
+    // (\r\n, like real pty output: bare \n would stair-step mid-line.)
     let cast = Cast::new(40, 8)
-        .event(0.5, "o", "same\n")
-        .event(1.0, "o", "different\n")
+        .event(0.5, "o", "same\r\n")
+        .event(1.0, "o", "different\r\n")
         .build();
     let out = svg(&cast, &opts());
     assert!(out.contains("<defs>"), "shared rows live in defs");
     assert_eq!(out.matches("<use href=").count(), 3, "2 rows + carried row");
     assert_eq!(out.matches("<g id=\"r").count(), 2, "same + different");
+}
+
+#[test]
+fn repeated_runs_share_one_def() {
+    // The same styled run inside two differently-shaped rows: one run def,
+    // one reference per unique row. (A run recurring only inside identical
+    // rows is already covered by the shared row entry.)
+    // (\r\n, like real pty output: bare \n would stair-step mid-line.)
+    let cast = Cast::new(80, 8)
+        .event(
+            0.5,
+            "o",
+            "\u{1b}[7m worms worms worms worms worms\u{1b}[0m\r\n",
+        )
+        .event(
+            0.5,
+            "o",
+            "\u{1b}[7m worms worms worms worms worms\u{1b}[0m bait\r\n",
+        )
+        .build();
+    let out = svg(&cast, &opts());
+    assert_eq!(out.matches("<text id=\"c").count(), 1, "the worms run");
+    assert_eq!(out.matches("<use href=\"#c").count(), 2, "one ref per row");
+}
+
+#[test]
+fn single_use_runs_stay_inline() {
+    // No repetition: output keeps plain inline runs, no indirection.
+    let cast = Cast::new(40, 8).event(0.1, "o", "one-off\n").build();
+    let out = svg(&cast, &opts());
+    assert!(!out.contains("<use href=\"#c"), "nothing to share");
+    assert!(!out.contains("<use href=\"#b"), "nothing to share");
 }
 
 #[test]

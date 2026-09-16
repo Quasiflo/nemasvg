@@ -188,10 +188,12 @@ pub fn render(
         render_chrome(&mut out, &ctx, header);
     }
 
-    // Row interning: identical rows are emitted once into <defs> and shared
-    // via <use>. Rows are position-independent (relative y); each <use>
-    // places one at its frame offset and row. Empty rows emit nothing.
-    let (defs, frame_rows) = intern_rows(timeline, &ctx, &lookup);
+    // Two-level interning: identical rows share one `<defs>` entry, and
+    // repeated runs inside rows share a deeper entry referenced by
+    // position-free `<use>` (x rides on the reference, y is constant).
+    // Rows stay position-independent (relative y); each row `<use>` places
+    // one at its frame offset and row. Empty rows emit nothing.
+    let (run_defs, row_defs, frame_rows) = intern_rows(timeline, &ctx, &lookup);
 
     write!(
         out,
@@ -202,9 +204,12 @@ pub fn render(
         h = ctx.content_h,
     )
     .unwrap();
-    if !defs.is_empty() {
+    if !run_defs.is_empty() || !row_defs.is_empty() {
         out.push_str("<defs>");
-        for (id, markup) in defs.iter().enumerate() {
+        for markup in &run_defs {
+            out.push_str(markup);
+        }
+        for (id, markup) in row_defs.iter().enumerate() {
             write!(out, "<g id=\"r{id}\">{markup}</g>").unwrap();
         }
         out.push_str("</defs>");
@@ -302,31 +307,165 @@ fn collect_classes(timeline: &Timeline, ctx: &Ctx<'_>) -> Vec<(usize, Style)> {
     classes
 }
 
+/// A drawable run with absolute column position.
+#[derive(Clone)]
+struct Run {
+    x: u32,
+    kind: RunKind,
+}
+
+#[derive(Hash, PartialEq, Eq, Clone)]
+enum RunKind {
+    Bg { w: u32, color: String },
+    Text { style: Style, text: String },
+}
+
+impl RunKind {
+    /// Position-free identity: same content at any column shares one def.
+    /// Tuple of plain data (HashMap keys cannot borrow the enum cleanly).
+    fn key(&self) -> (bool, u32, String, Option<Style>, String) {
+        match self {
+            RunKind::Bg { w, color } => (true, *w, color.clone(), None, String::new()),
+            RunKind::Text { style, text } => {
+                (false, 0, String::new(), Some(style.clone()), text.clone())
+            }
+        }
+    }
+
+    fn prefix(&self) -> char {
+        match self {
+            RunKind::Bg { .. } => 'b',
+            RunKind::Text { .. } => 'c',
+        }
+    }
+}
+
 fn intern_rows(
     timeline: &Timeline,
     ctx: &Ctx<'_>,
     lookup: &HashMap<&Style, usize>,
-) -> (Vec<String>, Vec<Vec<Option<usize>>>) {
-    let mut registry: HashMap<String, usize> = HashMap::new();
-    let mut defs: Vec<String> = Vec::new();
-    let mut frame_rows: Vec<Vec<Option<usize>>> = Vec::with_capacity(timeline.frames.len());
+) -> (Vec<String>, Vec<String>, Vec<Vec<Option<usize>>>) {
+    // Pass 1: structured rows, deduplicated structurally up front. Run
+    // frequencies are counted over UNIQUE rows only: a run inside a
+    // repeated row emits a single shared reference, so raw occurrences
+    // would overcount the savings and intern losers. Exact byte economics
+    // per distinct run: interned only when sharing truly saves bytes
+    // (sum(inline) > def + sum(refs)), measured with real strings — sparse
+    // content keeps today's output byte-for-byte.
+    struct RunEntry {
+        kind: RunKind,
+        inline_total: usize,
+        xs: Vec<u32>,
+    }
+    type RowKey = Vec<(u32, (bool, u32, String, Option<Style>, String))>;
+    let mut uniq_rows: Vec<Vec<Run>> = Vec::new();
+    let mut uniq_of: HashMap<RowKey, usize> = HashMap::new();
+    let mut frame_row_idx: Vec<Vec<Option<usize>>> = Vec::with_capacity(timeline.frames.len());
     for frame in &timeline.frames {
-        let mut ids: Vec<Option<usize>> = Vec::new();
+        let mut idxs = Vec::new();
         for line in frame.snap.lines.iter().take(ctx_rows(ctx)) {
-            let markup = render_row(line, ctx, lookup);
-            if markup.is_empty() {
-                ids.push(None);
+            let row = render_row_runs(line, ctx);
+            if row.is_empty() {
+                idxs.push(None);
                 continue;
             }
-            let id = *registry.entry(markup.clone()).or_insert_with(|| {
-                defs.push(markup);
-                defs.len() - 1
+            let key: RowKey = row.iter().map(|run| (run.x, run.kind.key())).collect();
+            let idx = *uniq_of.entry(key).or_insert_with(|| {
+                uniq_rows.push(row.clone());
+                uniq_rows.len() - 1
             });
-            ids.push(Some(id));
+            idxs.push(Some(idx));
         }
-        frame_rows.push(ids);
+        frame_row_idx.push(idxs);
     }
-    (defs, frame_rows)
+    let mut order_of: HashMap<(bool, u32, String, Option<Style>, String), usize> = HashMap::new();
+    let mut entries: Vec<RunEntry> = Vec::new();
+    for row in &uniq_rows {
+        for run in row {
+            let key = run.kind.key();
+            let inline = run_inline_len(run, ctx, lookup);
+            match order_of.get(&key) {
+                Some(&i) => {
+                    let e = &mut entries[i];
+                    e.inline_total += inline;
+                    e.xs.push(run.x);
+                }
+                None => {
+                    order_of.insert(key, entries.len());
+                    entries.push(RunEntry {
+                        kind: run.kind.clone(),
+                        inline_total: inline,
+                        xs: vec![run.x],
+                    });
+                }
+            }
+        }
+    }
+
+    // Pass 2: ids for winners only, in first-seen order (no gaps).
+    // Single-use runs always stay inline: def + ref can only cost more.
+    let mut winners: Vec<usize> = Vec::new();
+    for (i, e) in entries.iter().enumerate() {
+        if e.xs.len() < 2 {
+            continue;
+        }
+        // Provisional id width for the economics below; final ids are
+        // compacted afterwards, and a digit either way only matters on
+        // razor-thin margins where either choice is fine.
+        let digits = winners.len().to_string().len().max(1);
+        let def_len = run_def_len(&e.kind, digits, ctx, lookup);
+        let ref_len: usize =
+            e.xs.iter()
+                .map(|x| run_ref_len(e.kind.prefix(), digits, *x))
+                .sum();
+        if e.inline_total > def_len + ref_len {
+            winners.push(i);
+        }
+    }
+    let mut id_of: HashMap<usize, (char, usize)> = HashMap::new();
+    let mut run_defs: Vec<String> = Vec::new();
+    let mut counters: HashMap<char, usize> = HashMap::new();
+    for i in winners {
+        let e = &entries[i];
+        let prefix = e.kind.prefix();
+        let id = counters.get(&prefix).copied().unwrap_or(0);
+        counters.insert(prefix, id + 1);
+        id_of.insert(i, (prefix, id));
+        run_defs.push(run_def_markup(&e.kind, prefix, id, ctx, lookup));
+    }
+
+    // Pass 3: one markup per unique row (shared runs become references,
+    // singles stay inline), then frames point at rows exactly as before.
+    // The markup registry stays as a safety net: distinct structures can
+    // still collide textually only if truly identical.
+    let mut row_registry: HashMap<String, usize> = HashMap::new();
+    let mut row_defs: Vec<String> = Vec::new();
+    let mut row_id_of: Vec<usize> = Vec::with_capacity(uniq_rows.len());
+    for row in &uniq_rows {
+        let mut markup = String::new();
+        for run in row {
+            match order_of.get(&run.kind.key()).and_then(|i| id_of.get(i)) {
+                Some(&(prefix, id)) => {
+                    write!(markup, "<use href=\"#{prefix}{id}\" x=\"{}\"/>", run.x).unwrap();
+                }
+                None => run_inline_markup(&mut markup, run, ctx, lookup),
+            }
+        }
+        let id = *row_registry.entry(markup.clone()).or_insert_with(|| {
+            row_defs.push(markup);
+            row_defs.len() - 1
+        });
+        row_id_of.push(id);
+    }
+    let frame_rows: Vec<Vec<Option<usize>>> = frame_row_idx
+        .into_iter()
+        .map(|idxs| {
+            idxs.into_iter()
+                .map(|idx| idx.map(|idx| row_id_of[idx]))
+                .collect()
+        })
+        .collect();
+    (run_defs, row_defs, frame_rows)
 }
 
 fn ctx_cols(ctx: &Ctx<'_>) -> usize {
@@ -337,27 +476,26 @@ fn ctx_rows(ctx: &Ctx<'_>) -> usize {
     (ctx.content_h / ctx.row_h.max(1)) as usize
 }
 
-/// Render one terminal row with row-relative coordinates (bg at y=0, text
-/// baseline at `baseline_dy`) so identical rows share one `<defs>` entry
-/// regardless of position. Returns "" for fully blank rows.
-fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> String {
+/// Collect one terminal row as structured runs (background pass, then text
+/// pass, same grouping as ever). Coordinates stay absolute here; the caller
+/// strips positions when interning.
+fn render_row_runs(line: &Line, ctx: &Ctx<'_>) -> Vec<Run> {
     let max_cols = ctx_cols(ctx);
-    let mut out = String::new();
+    let mut runs = Vec::new();
 
     // Background pass: merge adjacent cells sharing a background into one rect.
     {
         let mut run_start: Option<(usize, String)> = None;
         let mut col = 0usize;
-        let flush = |out: &mut String, run: &mut Option<(usize, String)>, end: usize| {
+        let mut flush = |run: &mut Option<(usize, String)>, end: usize| {
             if let Some((start, color)) = run.take() {
-                write!(
-                    out,
-                    "<rect x=\"{}\" y=\"0\" width=\"{}\" height=\"{h}\" fill=\"{color}\"/>",
-                    start as u32 * ctx.col_w,
-                    (end - start) as u32 * ctx.col_w,
-                    h = ctx.row_h,
-                )
-                .unwrap();
+                runs.push(Run {
+                    x: start as u32 * ctx.col_w,
+                    kind: RunKind::Bg {
+                        w: (end - start) as u32 * ctx.col_w,
+                        color,
+                    },
+                });
             }
         };
         for cell in line.cells().iter().take(max_cols) {
@@ -369,19 +507,19 @@ fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> St
             match (bg, &mut run_start) {
                 (Some(color), Some((_, cur))) if *cur == color => {}
                 (Some(color), run) => {
-                    flush(&mut out, run, col);
+                    flush(run, col);
                     *run = Some((col, color));
                 }
-                (None, run) => flush(&mut out, run, col),
+                (None, run) => flush(run, col),
             }
             col += w as usize;
         }
-        flush(&mut out, &mut run_start, col);
+        flush(&mut run_start, col);
     }
 
-    // Text pass: group consecutive same-style cells into one <text>.
-    // Trailing blanks are invisible, so text runs stop at the last non-space
-    // cell (backgrounds were already painted in the pass above).
+    // Text pass: group consecutive same-style cells into one run.
+    // Trailing blanks are invisible, so runs stop at the last non-space
+    // cell (backgrounds were already collected in the pass above).
     {
         let cells = line.cells();
         let mut text_end = 0usize;
@@ -400,31 +538,20 @@ fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> St
         let mut run_style: Option<Style> = None;
         let mut run_x = 0u32;
         let mut col = 0usize;
-        let flush = |out: &mut String, run: &mut String, style: &mut Option<Style>, x: u32| {
+        let mut flush = |run: &mut String, style: &mut Option<Style>, x: u32| {
             if run.is_empty() || run.trim().is_empty() {
                 run.clear();
                 *style = None;
                 return;
             }
             let style = style.take().expect("run always has a style");
-            if style.is_plain(ctx.theme) {
-                write!(
-                    out,
-                    "<text x=\"{x}\" y=\"{dy}\">{}</text>",
-                    esc(run),
-                    dy = ctx.baseline_dy
-                )
-                .unwrap();
-            } else if let Some(id) = lookup.get(&style) {
-                write!(
-                    out,
-                    "<text x=\"{x}\" y=\"{dy}\" class=\"s{id}\">{}</text>",
-                    esc(run),
-                    dy = ctx.baseline_dy
-                )
-                .unwrap();
-            }
-            run.clear();
+            runs.push(Run {
+                x,
+                kind: RunKind::Text {
+                    style,
+                    text: std::mem::take(run),
+                },
+            });
         };
         for cell in line.cells().iter().take(max_cols) {
             let w = cell.width();
@@ -438,7 +565,7 @@ fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> St
             match &run_style {
                 Some(cur) if *cur == style => run.push(cell.char()),
                 _ => {
-                    flush(&mut out, &mut run, &mut run_style, run_x);
+                    flush(&mut run, &mut run_style, run_x);
                     run_x = col as u32 * ctx.col_w;
                     run.push(cell.char());
                     run_style = Some(style);
@@ -446,10 +573,113 @@ fn render_row(line: &Line, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> St
             }
             col += w as usize;
         }
-        flush(&mut out, &mut run, &mut run_style, run_x);
+        flush(&mut run, &mut run_style, run_x);
     }
 
+    runs
+}
+
+/// Inline form of one run (today's exact markup, kept for single-use runs).
+fn run_inline_markup(out: &mut String, run: &Run, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) {
+    match &run.kind {
+        RunKind::Bg { w, color } => {
+            write!(
+                out,
+                "<rect x=\"{}\" y=\"0\" width=\"{w}\" height=\"{h}\" fill=\"{color}\"/>",
+                run.x,
+                h = ctx.row_h,
+            )
+            .unwrap();
+        }
+        RunKind::Text { style, text } => {
+            if style.is_plain(ctx.theme) {
+                write!(
+                    out,
+                    "<text x=\"{}\" y=\"{dy}\">{}</text>",
+                    run.x,
+                    esc(text),
+                    dy = ctx.baseline_dy
+                )
+                .unwrap();
+            } else if let Some(id) = lookup.get(style) {
+                write!(
+                    out,
+                    "<text x=\"{}\" y=\"{dy}\" class=\"s{id}\">{}</text>",
+                    run.x,
+                    esc(text),
+                    dy = ctx.baseline_dy
+                )
+                .unwrap();
+            }
+        }
+    }
+}
+
+/// Byte length of the inline form, without building it.
+fn run_inline_len(run: &Run, ctx: &Ctx<'_>, lookup: &HashMap<&Style, usize>) -> usize {
+    let mut out = String::new();
+    run_inline_markup(&mut out, run, ctx, lookup);
+    out.len()
+}
+
+/// Shared-def form: position-free element addressed by `<use>` (x rides on
+/// the reference; y is constant across rows so it stays in the def).
+fn run_def_markup(
+    kind: &RunKind,
+    prefix: char,
+    id: usize,
+    ctx: &Ctx<'_>,
+    lookup: &HashMap<&Style, usize>,
+) -> String {
+    let mut out = String::new();
+    match kind {
+        RunKind::Bg { w, color } => {
+            write!(
+                out,
+                "<rect id=\"{prefix}{id}\" y=\"0\" width=\"{w}\" height=\"{h}\" fill=\"{color}\"/>",
+                h = ctx.row_h,
+            )
+            .unwrap();
+        }
+        RunKind::Text { style, text } => {
+            if style.is_plain(ctx.theme) {
+                write!(
+                    out,
+                    "<text id=\"{prefix}{id}\" y=\"{dy}\">{}</text>",
+                    esc(text),
+                    dy = ctx.baseline_dy
+                )
+                .unwrap();
+            } else if let Some(class) = lookup.get(style) {
+                write!(
+                    out,
+                    "<text id=\"{prefix}{id}\" y=\"{dy}\" class=\"s{class}\">{}</text>",
+                    esc(text),
+                    dy = ctx.baseline_dy
+                )
+                .unwrap();
+            }
+        }
+    }
     out
+}
+
+fn run_def_len(
+    kind: &RunKind,
+    id_digits: usize,
+    ctx: &Ctx<'_>,
+    lookup: &HashMap<&Style, usize>,
+) -> usize {
+    // Measure with a same-width stand-in id; prefixes are one char each.
+    let fake_id: usize = "9".repeat(id_digits).parse().unwrap_or(0);
+    run_def_markup(kind, 'q', fake_id, ctx, lookup).len()
+}
+
+/// Byte length of `<use href="#p12" x="345"/>` for the given widths.
+fn run_ref_len(prefix: char, id_digits: usize, x: u32) -> usize {
+    let _ = prefix;
+    // "<use href=\"#\" x=\"\"/>" is 19 chars plus id, prefix and x digits.
+    19 + 1 + id_digits + x.to_string().len()
 }
 
 fn render_cursor(out: &mut String, cursor: &Cursor, ctx: &Ctx<'_>) {

@@ -203,6 +203,25 @@ fn letter_spacing_compensates_column_rounding() {
 }
 
 #[test]
+fn whitespace_survives_into_defs() {
+    // Text is defined in <defs> and cloned via <use>; xml:space must cover
+    // the definitions, otherwise leading/interior spaces are stripped at
+    // parse time (HELLO lost its indent, progress % drifted).
+    let cast = Cast::new(40, 8).event(0.1, "o", "  pad  1").build();
+    let out = svg(&cast, &opts());
+    assert!(out.contains(">  pad  1<"), "spaces intact in markup");
+    assert!(
+        out.contains("<svg xmlns=\"http://www.w3.org/2000/svg\" width="),
+        "{out}"
+    );
+    let root = out.split('>').next().unwrap_or_default();
+    assert!(
+        root.contains("xml:space=\"preserve\""),
+        "root must preserve space: {root}"
+    );
+}
+
+#[test]
 fn trailing_blanks_are_not_emitted_as_text() {
     let cast = Cast::new(40, 8).event(0.1, "o", "hi").build();
     let out = svg(&cast, &opts());

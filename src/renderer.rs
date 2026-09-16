@@ -133,8 +133,12 @@ pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Opt
     let lookup = styles_lookup(&classes);
 
     let mut out = String::new();
+    // xml:space lives on the root: whitespace is fixed at XML parse time from
+    // the in-scope value, and our text is defined in <defs> (cloned via
+    // <use> only afterwards). Scoping it to the reel <g> left <defs> with the
+    // collapsing default, silently stripping leading/interior spaces.
     out.push_str(&format!(
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{w}\" height=\"{h}\" viewBox=\"0 0 {w} {h}\" role=\"img\">",
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{w}\" height=\"{h}\" viewBox=\"0 0 {w} {h}\" role=\"img\" xml:space=\"preserve\">",
         w = ctx.total_w,
         h = ctx.total_h,
     ));
@@ -194,12 +198,7 @@ pub fn render(timeline: &Timeline, theme: &Theme, header: &Header, options: &Opt
         out.push_str("</defs>");
     }
     let reel_class = if animated { " class=\"r\"" } else { "" };
-    write!(
-        out,
-        "<g{reel_class} xml:space=\"preserve\" fill=\"{fg}\">",
-        fg = theme.fg
-    )
-    .unwrap();
+    write!(out, "<g{reel_class} fill=\"{fg}\">", fg = theme.fg).unwrap();
     if timeline.frames.is_empty() {
         out.push_str("<g></g>");
     }

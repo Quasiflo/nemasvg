@@ -4,3 +4,4 @@
 "aqua:rvben/rumdl" = "0.2.73"                 # Used for linting & formatting markdown
 "github:zizmorcore/zizmor" = "v1.30.1"        # Used for statically analyzing github actions
 "github:asciinema/asciinema" = "3.2.1"        # Used for generating cli demos
+"http:fireworks" = { version = "0002", url = "https://raw.githubusercontent.com/attogram/bash-screensavers/refs/tags/{{version}}/gallery/fireworks/fireworks.sh", bin = "fireworks.sh" }                   # Fireworks animation script for readme hero

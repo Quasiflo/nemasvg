@@ -18,6 +18,8 @@
 use std::collections::{BTreeSet, HashSet};
 
 use base64::Engine as _;
+use read_fonts::TableProvider;
+use skrifa::{FontRef, charmap::Charmap};
 
 use crate::timeline::Timeline;
 
@@ -64,17 +66,25 @@ fn collect_used(timeline: &Timeline) -> (BTreeSet<char>, bool) {
 }
 
 /// Measure the space-advance ratio of a font (advance / units-per-em).
+/// Raw integer tables, so the math is bit-identical to the old ttf-parser
+/// path (600/1000, not a float-scaled approximation).
 fn advance_ratio(font_data: &[u8]) -> anyhow::Result<f64> {
-    let face = ttf_parser::Face::parse(font_data, 0)
-        .map_err(|e| anyhow::anyhow!("cannot parse bundled font: {e:?}"))?;
-    let upem = f64::from(face.units_per_em());
-    let gid = face
-        .glyph_index(' ')
+    let font =
+        FontRef::new(font_data).map_err(|e| anyhow::anyhow!("cannot parse bundled font: {e:?}"))?;
+    let upem = f64::from(
+        font.head()
+            .map_err(|e| anyhow::anyhow!("cannot read bundled font head: {e:?}"))?
+            .units_per_em(),
+    );
+    let gid = Charmap::new(&font)
+        .map(' ')
         .ok_or_else(|| anyhow::anyhow!("bundled font has no space glyph"))?;
-    Ok(f64::from(
-        face.glyph_hor_advance(gid)
-            .ok_or_else(|| anyhow::anyhow!("bundled font has no advance for space"))?,
-    ) / upem)
+    let advance = font
+        .hmtx()
+        .map_err(|e| anyhow::anyhow!("cannot read bundled font metrics: {e:?}"))?
+        .advance(gid)
+        .ok_or_else(|| anyhow::anyhow!("bundled font has no advance for space"))?;
+    Ok(f64::from(advance) / upem)
 }
 
 /// Subset a font to `chars` and encode the subset as WOFF2.
@@ -123,18 +133,19 @@ pub fn plan(timeline: &Timeline, embed_emoji: bool) -> anyhow::Result<FontPlan> 
         css.push_str(&face_block(MONO_FAMILY, &bold_subset, "font-weight:700;"));
     }
 
-    let regular_face = ttf_parser::Face::parse(REGULAR, 0)
-        .map_err(|e| anyhow::anyhow!("cannot parse bundled font: {e:?}"))?;
+    let regular_map = Charmap::new(
+        &FontRef::new(REGULAR).map_err(|e| anyhow::anyhow!("cannot parse bundled font: {e:?}"))?,
+    );
     let mut prefix = format!("'{MONO_FAMILY}',");
     if embed_emoji {
-        let emoji_face = ttf_parser::Face::parse(EMOJI, 0)
-            .map_err(|e| anyhow::anyhow!("cannot parse bundled emoji font: {e:?}"))?;
+        let emoji_map = Charmap::new(
+            &FontRef::new(EMOJI)
+                .map_err(|e| anyhow::anyhow!("cannot parse bundled emoji font: {e:?}"))?,
+        );
         let missing: HashSet<char> = used
             .iter()
             .copied()
-            .filter(|c| {
-                regular_face.glyph_index(*c).is_none() && emoji_face.glyph_index(*c).is_some()
-            })
+            .filter(|c| regular_map.map(*c).is_none() && emoji_map.map(*c).is_some())
             .collect();
         if !missing.is_empty() {
             let emoji_subset = subset_woff2(EMOJI, &missing, "emoji")?;
@@ -178,11 +189,12 @@ mod tests {
         let chars: HashSet<char> = ['A', ' ', 'é'].into_iter().collect();
         let subset = fontcull::subset_font_data(REGULAR, &chars, &[]).unwrap();
         assert!(subset.len() < REGULAR.len() / 10);
-        let face = ttf_parser::Face::parse(&subset, 0).unwrap();
+        let font = FontRef::new(&subset).unwrap();
+        let map = Charmap::new(&font);
         for c in ['A', ' ', 'é'] {
-            assert!(face.glyph_index(c).is_some(), "missing {c}");
+            assert!(map.map(c).is_some(), "missing {c}");
         }
-        assert!(face.glyph_index('Z').is_none(), "unused glyph retained");
+        assert!(map.map('Z').is_none(), "unused glyph retained");
     }
 
     #[test]

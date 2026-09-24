@@ -1,15 +1,15 @@
 [package]
 name = "nemasvg"
 version = "0.1.0"
-description = "Asciinema -> Animated SVG Generator"
 edition = "2024"
 rust-version = "1.88"
-license = "MIT"
-repository = "https://github.com/Quasiflo/nemasvg"
+description = "Asciinema -> Animated SVG Generator"
 readme = "README.md"
-keywords = ["asciinema", "asciicast", "svg", "terminal", "animation"]
+repository = "https://github.com/Quasiflo/nemasvg"
+license = "Apache-2.0"
+keywords = ["animation", "asciicast", "asciinema", "svg", "terminal"]
 categories = ["command-line-utilities", "multimedia"]
-exclude = [".config/", ".vscode/", ".github/", "docs/", "scripts/", "AGENTS.md"]
+exclude = [".config/", ".github/", ".vscode/", "AGENTS.md", "docs/", "scripts/"]
 
 [lib]
 name = "nemasvg"

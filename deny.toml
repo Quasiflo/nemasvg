@@ -1,0 +1,16 @@
+# cargo-deny configuration: license allowlist plus default advisory/ban/source checks.
+# Run via `hk check` (or `cargo deny check` directly). Keep `allow` tight so that
+# any new license entering the tree fails the hook and gets a deliberate review.
+
+[licenses]
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "Unlicense",
+  "Zlib",
+  "Unicode-3.0",
+  # LGPL-2.1-or-later enters only via r-efi (getrandom's UEFI-target support,
+  # not linked on desktop targets); accepted as weak copyleft for this MIT binary.
+  "LGPL-2.1-or-later",
+]

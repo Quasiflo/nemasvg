@@ -11,6 +11,7 @@ Asciinema v3 -> animated SVG converter (CLI + library). v3-only by design — v1
 - Grid alignment without embedded fonts: `letter-spacing` compensates the assumed 0.6 advance ratio. Never use per-run `textLength` — viewer support varies and identical glyphs pulse between frames. Both are interim until font embedding lands.
 - Whitespace needs both `xml:space="preserve"` on the root (parse-time, covers `<defs>` for resvg) and CSS `white-space:pre` (Chromium strips edge spaces in `<use>`-cloned text on CSS grounds alone). Verify visual spacing in a real browser (headless Chromium), never resvg alone — resvg ignores `@font-face` and uses different metrics.
 - Fonts: JetBrains Mono Regular/Bold + Noto Emoji (OFL, in `fonts/`) are subset to used glyphs (pure-Rust `fontcull`) and embedded as WOFF2 data URIs (`ttf2woff2`) by default — `--no-embed-fonts` opts out, `--embed-emoji` adds monochrome emoji (color emoji stays on OS fallback). Column width uses the measured advance. resvg ignores `@font-face`, so embedded rendering is verified by decoding/re-parsing subsets in tests, never by rasterization.
+- Font introspection (coverage, advances) goes through `skrifa`/`read-fonts` (fontations, maintained). Never re-add `ttf-parser` — RUSTSEC-2026-0192 marks it unmaintained.
 
 ## Toolchain
 
@@ -28,7 +29,7 @@ Asciinema v3 -> animated SVG converter (CLI + library). v3-only by design — v1
 ## Checks (Git Hooks + CI Equivalent)
 
 - Git hooks via `hk` (`.config/hk.pkl`): `rumdl`, `zizmor`, `cargo clippy`, `cargo fmt`, `cargo deny`. Run `hk check` before pushing; it no-ops when no files changed.
-- No `deny.toml`/`rust-toolchain.toml` in repo yet — `cargo deny` uses defaults.
+- License/advisory policy lives in `deny.toml` (tight allowlist; new licenses must be reviewed). No `rust-toolchain.toml` in repo yet.
 - Markdown lint via `rumdl` (`.config/rumdl.toml`, `MD013` disabled). VS Code runs it on save.
 - GitHub Actions lint via `zizmor`; only workflow is `release-please.yml`.
 

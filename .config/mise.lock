@@ -379,9 +379,9 @@ url_api = "https://api.github.com/repos/tombi-toml/tombi/releases/assets/5999232
 provenance = "github-attestations"
 
 [[tools."cargo:templatry"]]
-version = "0.2.0"
+version = "0.2.1"
 backend = "cargo:templatry"
-specifiers = ["0.2.0"]
+specifiers = ["0.2.1"]
 
 [[tools."github:asciinema/asciinema"]]
 version = "3.2.1"

@@ -3,7 +3,7 @@
 [tools]
 #* Main
 "core:rust" = "1.99.0"
-"cargo:templatry" = "0.2.0" # Used for generating config files
+"cargo:templatry" = "0.2.1" # Used for generating config files
 #* Linting
 "aqua:jdx/hk" = "2.4.0"                    # Used for running linting, formatting & git hooks
 "aqua:mikefarah/yq" = "4.54.1"             # Used for validating & formatting JSON & toml parsing

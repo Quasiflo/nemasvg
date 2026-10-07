@@ -25,9 +25,9 @@ avt = "0.18"
 base64 = "0.23"
 clap = { version = "4.5", features = ["derive"] }
 fontcull = { version = "2.0", default-features = false }
-read-fonts = "0.44"
+read-fonts = "0.45"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-skrifa = "0.47"
+skrifa = "0.48"
 ttf2woff2 = "0.13"
 zstd = "0.14"

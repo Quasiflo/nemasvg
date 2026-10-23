@@ -29,5 +29,5 @@ read-fonts = "0.45"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 skrifa = "0.48"
-ttf2woff2 = "0.13"
+ttf2woff2 = "0.14"
 zstd = "0.14"

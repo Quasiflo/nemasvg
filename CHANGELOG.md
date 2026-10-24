@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/Quasiflo/nemasvg/compare/v0.2.0...v0.2.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* **deps:** update cargo dependencies ([#39](https://github.com/Quasiflo/nemasvg/issues/39)) ([9399ed1](https://github.com/Quasiflo/nemasvg/commit/9399ed17690a5aa4666973bc270809e56492bdf4))
+* **deps:** update cargo dependencies ([#57](https://github.com/Quasiflo/nemasvg/issues/57)) ([808b04f](https://github.com/Quasiflo/nemasvg/commit/808b04f69b2739b80574f9b385c708d5e46f104e))
+
 ## [0.2.0](https://github.com/Quasiflo/nemasvg/compare/v0.1.0...v0.2.0) (2026-09-16)
 
 

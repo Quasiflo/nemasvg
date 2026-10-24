@@ -419,50 +419,50 @@ url = "https://github.com/asciinema/asciinema/releases/download/v3.2.1/asciinema
 url_api = "https://api.github.com/repos/asciinema/asciinema/releases/assets/449290107"
 
 [[tools."github:kucherenko/jscpd"]]
-version = "5.4.1"
+version = "5.4.2"
 backend = "github:kucherenko/jscpd"
-specifiers = ["v5.4.1"]
+specifiers = ["v5.4.2"]
 
 [tools."github:kucherenko/jscpd"."platforms.linux-arm64"]
-checksum = "sha256:6f8ddab0aec0232d08a6aa0c36cddb435ddde2c24a447cc9afe603ac8556748c"
-url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.1/jscpd-linux-arm64-gnu.tar.gz"
-url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/624938745"
+checksum = "sha256:f796d57334c34e9361575588ee130f8b0a00388e7e42f3b27f7d50d4aecf85ae"
+url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.2/jscpd-linux-arm64-gnu.tar.gz"
+url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/659819462"
 provenance = "github-attestations"
 
 [tools."github:kucherenko/jscpd"."platforms.linux-arm64-musl"]
-checksum = "sha256:9a89b6c6a62d798759d2e94142e22bfcfdb6962dfca9b12b890a92d541c4069e"
-url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.1/jscpd-linux-arm64-musl.tar.gz"
-url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/624938744"
+checksum = "sha256:3635d652ae08ae10bfbc6821bfa8ac14080101f317fb5f45f4b590d5d32b9339"
+url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.2/jscpd-linux-arm64-musl.tar.gz"
+url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/659819456"
 provenance = "github-attestations"
 
 [tools."github:kucherenko/jscpd"."platforms.linux-x64"]
-checksum = "sha256:f2017a17de2a8d5708f8354c6e7223f82da3dc6489675bce543ba00d9d529468"
-url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.1/jscpd-linux-x64-gnu.tar.gz"
-url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/624938749"
+checksum = "sha256:216bae5de2b30c57f893286585c7a348e8af7cd36810949831f569d29f495a3b"
+url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.2/jscpd-linux-x64-gnu.tar.gz"
+url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/659819461"
 provenance = "github-attestations"
 
 [tools."github:kucherenko/jscpd"."platforms.linux-x64-musl"]
-checksum = "sha256:226149bbf3e48df408005dd3222d5c42367f7cfef4c5788e4da9f4f6a5003b63"
-url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.1/jscpd-linux-x64-musl.tar.gz"
-url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/624938793"
+checksum = "sha256:5f18a6b70b4210782fc3c401c780ba994a2777249cd44d97d6fa460f6fff4570"
+url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.2/jscpd-linux-x64-musl.tar.gz"
+url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/659819495"
 provenance = "github-attestations"
 
 [tools."github:kucherenko/jscpd"."platforms.macos-arm64"]
-checksum = "sha256:48dedc0b8fa4f2900fc6ac8f06797e8eee7e36a8ab4f67f54b1ad25fd7ae103c"
-url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.1/jscpd-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/624938747"
+checksum = "sha256:b51d22d7c7610d27d8fd022577021ff3266a10f13295a2e545a8b8e126133a88"
+url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.2/jscpd-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/659819460"
 provenance = "github-attestations"
 
 [tools."github:kucherenko/jscpd"."platforms.macos-x64"]
-checksum = "sha256:101a9b9e0d1a4ffea7b9ac86d91003745ef471f00a8a2a921353a65647b5d12f"
-url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.1/jscpd-darwin-x64.tar.gz"
-url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/624938748"
+checksum = "sha256:ae8d24aba2719df7682b1bb2c5021ab096116b8240c45fdae88654fc1ff36b17"
+url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.2/jscpd-darwin-x64.tar.gz"
+url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/659819465"
 provenance = "github-attestations"
 
 [tools."github:kucherenko/jscpd"."platforms.windows-x64"]
-checksum = "sha256:69b3868a271a7f9c33c4dc0c82b861c290abc70cfb98ea59fba235a25776afe7"
-url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.1/jscpd-windows-x64-msvc.tar.gz"
-url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/624938810"
+checksum = "sha256:a7927e3bbdd341a139459c684d3f5e0b6409b7b1660bae275d44523f63128d87"
+url = "https://github.com/kucherenko/jscpd/releases/download/v5.4.2/jscpd-windows-x64-msvc.tar.gz"
+url_api = "https://api.github.com/repos/kucherenko/jscpd/releases/assets/659819508"
 provenance = "github-attestations"
 
 [[tools."github:mongodb/kingfisher"]]

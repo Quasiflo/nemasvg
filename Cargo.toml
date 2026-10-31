@@ -21,7 +21,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0"
-avt = "0.18"
+avt = "0.19"
 base64 = "0.23"
 clap = { version = "4.5", features = ["derive"] }
 fontcull = { version = "2.0", default-features = false }

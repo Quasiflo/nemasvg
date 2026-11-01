@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.1](https://github.com/Quasiflo/nemasvg/compare/v0.2.0...v0.2.1) (2026-11-01)
+
+
+### Bug Fixes
+
+* **deps:** update cargo dependencies ([#39](https://github.com/Quasiflo/nemasvg/issues/39)) ([9399ed1](https://github.com/Quasiflo/nemasvg/commit/9399ed17690a5aa4666973bc270809e56492bdf4))
+* **deps:** update cargo dependencies ([#57](https://github.com/Quasiflo/nemasvg/issues/57)) ([808b04f](https://github.com/Quasiflo/nemasvg/commit/808b04f69b2739b80574f9b385c708d5e46f104e))
+* **deps:** update cargo dependencies ([#70](https://github.com/Quasiflo/nemasvg/issues/70)) ([8a9c70d](https://github.com/Quasiflo/nemasvg/commit/8a9c70d1f9e00897956488286646a8e87d98c768))
+* **deps:** update rust crate avt to 0.19 ([#78](https://github.com/Quasiflo/nemasvg/issues/78)) ([0b85935](https://github.com/Quasiflo/nemasvg/commit/0b85935ad68d6cb3893f5d56dff897041d9a4b62))
+
 ## [0.2.0](https://github.com/Quasiflo/nemasvg/compare/v0.1.0...v0.2.0) (2026-09-16)
 
 

@@ -571,24 +571,31 @@ backend = "http:fireworks"
 specifiers = ["0002"]
 
 [tools."http:fireworks"."platforms.linux-arm64"]
+checksum = "sha256:6e820a912c5a1473537d74a08c71784d0cb0753d7df4361733790e00809ede1c"
 url = "https://raw.githubusercontent.com/attogram/bash-screensavers/refs/tags/0002/gallery/fireworks/fireworks.sh"
 
 [tools."http:fireworks"."platforms.linux-arm64-musl"]
+checksum = "sha256:6e820a912c5a1473537d74a08c71784d0cb0753d7df4361733790e00809ede1c"
 url = "https://raw.githubusercontent.com/attogram/bash-screensavers/refs/tags/0002/gallery/fireworks/fireworks.sh"
 
 [tools."http:fireworks"."platforms.linux-x64"]
+checksum = "sha256:6e820a912c5a1473537d74a08c71784d0cb0753d7df4361733790e00809ede1c"
 url = "https://raw.githubusercontent.com/attogram/bash-screensavers/refs/tags/0002/gallery/fireworks/fireworks.sh"
 
 [tools."http:fireworks"."platforms.linux-x64-musl"]
+checksum = "sha256:6e820a912c5a1473537d74a08c71784d0cb0753d7df4361733790e00809ede1c"
 url = "https://raw.githubusercontent.com/attogram/bash-screensavers/refs/tags/0002/gallery/fireworks/fireworks.sh"
 
 [tools."http:fireworks"."platforms.macos-arm64"]
+checksum = "sha256:6e820a912c5a1473537d74a08c71784d0cb0753d7df4361733790e00809ede1c"
 url = "https://raw.githubusercontent.com/attogram/bash-screensavers/refs/tags/0002/gallery/fireworks/fireworks.sh"
 
 [tools."http:fireworks"."platforms.macos-x64"]
+checksum = "sha256:6e820a912c5a1473537d74a08c71784d0cb0753d7df4361733790e00809ede1c"
 url = "https://raw.githubusercontent.com/attogram/bash-screensavers/refs/tags/0002/gallery/fireworks/fireworks.sh"
 
 [tools."http:fireworks"."platforms.windows-x64"]
+checksum = "sha256:6e820a912c5a1473537d74a08c71784d0cb0753d7df4361733790e00809ede1c"
 url = "https://raw.githubusercontent.com/attogram/bash-screensavers/refs/tags/0002/gallery/fireworks/fireworks.sh"
 
 [[tools.rust]]

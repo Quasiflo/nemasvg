@@ -2,7 +2,7 @@
 
 [tools]
 #* Main
-"core:rust" = "1.99.1"
+"core:rust" = "1.100.0"
 "cargo:templatry" = "0.2.1" # Used for generating config files
 #* Linting
 "aqua:jdx/hk" = "2.12.0"                    # Used for running linting, formatting & git hooks
